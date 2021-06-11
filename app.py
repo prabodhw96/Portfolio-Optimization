@@ -17,9 +17,13 @@ def load_data():
 	df = pd.read_csv(STOCK_URL)
 	return df
 
-@st.cache(allow_output_mutation=True)
+@st.cache(allow_output_mutation=True, suppress_st_warning=True)
 def fetch_data(stocks):
-	data = web.DataReader(stocks, data_source="yahoo",start=date.today()-timedelta(days=365))["Adj Close"]
+	try:
+		data = web.DataReader(stocks, data_source="yahoo",start=date.today()-timedelta(days=365))["Adj Close"]
+	except:
+		st.success("Please select stocks :)")
+		st.stop()
 	return data
 
 def portfolio_annualized_performance(weights, mean_returns, cov_matrix):
@@ -154,10 +158,10 @@ if st.sidebar.checkbox("Compare Portfolios", False):
 	ax.scatter(sdp, rp, marker="*", color="#01b0f6", s=500, label="Maximum Sharpe ratio")
 	ax.scatter(sdp_min, rp_min, marker="*", color="#02bf7d", s=500, label="Minimum volatility")
 
-	target = np.linspace(rp_min, 0.34, 50)
-	efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target)
+	#target = np.linspace(rp_min, 0.34, 50)
+	#efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target)
 
-	ax.plot([pf["fun"] for pf in efficient_portfolios], target, linestyle="-.", color="black", label="efficient frontier")
+	#ax.plot([pf["fun"] for pf in efficient_portfolios], target, linestyle="-.", color="black", label="efficient frontier")
 	ax.set_title("Portfolio Optimization with Individual Stocks")
 	ax.set_xlabel("annualized volatility")
 	ax.set_ylabel("annualized returns")
