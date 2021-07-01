@@ -33,13 +33,13 @@ def portfolio_annualized_performance(weights, mean_returns, cov_matrix):
 	return std, returns
 
 def neg_prob_sharpe_ratio(weights, mean_returns, log_returns, cov_matrix, risk_free_rate, sharpe_ratio_benchmark):
-    p_var, p_ret = portfolio_annualized_performance(weights, mean_returns, cov_matrix)
-    sharpe_ratio = (p_ret - risk_free_rate)/p_var
-    coskew = pd.Series(stats.skew(mean_returns), index=mean_returns.index).mean()
-    cokurt = pd.Series(stats.kurtosis(mean_returns, fisher=False), index=mean_returns.index).mean()    
-    sharpe_ratio_stdev = np.sqrt((1+(0.5*sharpe_ratio**2) - coskew*sharpe_ratio) + (((cokurt-3)/4)*sharpe_ratio**2))/(len(mean_returns)-1)
-    prob_sharpe_ratio = stats.norm.cdf((sharpe_ratio - sharpe_ratio_benchmark)/sharpe_ratio_stdev)
-    return -1*prob_sharpe_ratio
+	p_var, p_ret = portfolio_annualized_performance(weights, mean_returns, cov_matrix)
+	sharpe_ratio = (p_ret - risk_free_rate)/p_var
+	coskew = pd.Series(stats.skew(mean_returns), index=mean_returns.index).mean()
+	cokurt = pd.Series(stats.kurtosis(mean_returns, fisher=False), index=mean_returns.index).mean()    
+	sharpe_ratio_stdev = np.sqrt((1+(0.5*sharpe_ratio**2) - coskew*sharpe_ratio) + (((cokurt-3)/4)*sharpe_ratio**2))/(len(mean_returns)-1)
+	prob_sharpe_ratio = stats.norm.cdf((sharpe_ratio - sharpe_ratio_benchmark)/sharpe_ratio_stdev)
+	return -1*prob_sharpe_ratio
 
 def max_sharpe_ratio(mean_returns, log_returns, cov_matrix, risk_free_rate, sharpe_ratio_benchmark=0.0):
 	num_assets = len(mean_returns)
