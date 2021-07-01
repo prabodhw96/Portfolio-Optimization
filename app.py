@@ -74,6 +74,27 @@ def efficient_frontier(mean_returns, cov_matrix, returns_range):
 		efficients.append(efficient_return(mean_returns, cov_matrix, ret))
 	return efficients
 
+def cokurt(df):
+	num = len(df.columns)
+	mtx1 = np.zeros(shape = (len(df), num**2))
+	mtx2 = np.zeros(shape = (len(df), num**3))
+	v = df.values
+	means = v.mean(0,keepdims=True)
+	v1 = (v-means).T
+
+	for k in range(num):
+		for i in range(num):
+			for j in range(num):
+				vals = v1[i]*v1[j]*v1[k]
+				mtx2[:,(k*(num**2))+(i*num)+j] = vals/float((len(df)-1)*df.iloc[:,i].std()*df.iloc[:,j].std()*df.iloc[:,k].std())
+
+	m4 = np.dot(v1,mtx2)
+	for i in range(num**3):
+		use = i%num
+		m4[:,i] = m4[:,i]/float(df.iloc[:,use].std())
+
+	return m4
+
 
 st.title("Optimal Asset Allocation")
 
@@ -119,6 +140,9 @@ mean_returns = returns.mean()
 cov_matrix = returns.cov()
 risk_free_rate = 0.0178
 
+log_ret = np.log(data/data.shift(1))
+log_ret = log_ret.dropna()
+
 max_sharpe = max_sharpe_ratio(mean_returns, cov_matrix, risk_free_rate)
 sdp, rp = portfolio_annualized_performance(max_sharpe["x"], mean_returns, cov_matrix)
 max_sharpe_allocation = pd.DataFrame(max_sharpe["x"], index=data.columns, columns=["allocation"])
@@ -130,6 +154,12 @@ sdp_min, rp_min = portfolio_annualized_performance(min_vol["x"], mean_returns, c
 min_vol_allocation = pd.DataFrame(min_vol.x,index=data.columns,columns=["allocation"])
 min_vol_allocation["allocation"] = [round(i*100,2)for i in min_vol_allocation["allocation"]]
 min_vol_allocation = min_vol_allocation.T
+
+kurt_sharpe = max_sharpe_ratio(cokurt(log_ret).mean(axis=1), cov_matrix, risk_free_rate)
+sdp_kurt, rp_kurt = portfolio_annualized_performance(kurt_sharpe["x"], mean_returns, cov_matrix)
+kurt_sharpe_allocation = pd.DataFrame(kurt_sharpe["x"], index=data.columns, columns=["allocation"])
+kurt_sharpe_allocation["allocation"] = [round(i*100, 2)for i in kurt_sharpe_allocation["allocation"]]
+kurt_sharpe_allocation = kurt_sharpe_allocation.T
 
 an_vol = np.std(returns)*np.sqrt(252)
 an_rt = mean_returns*252
@@ -144,6 +174,11 @@ st.write("Annualized Return:", round(rp_min, 2))
 st.write("Annualized Volatility:", round(sdp_min, 2))
 st.table(min_vol_allocation)
 
+st.write("### Optimal Higher Moment Portfolio Allocation")
+st.write("Annualized Return:", round(rp_kurt, 2))
+st.write("Annualized Volatility:", round(sdp_kurt, 2))
+st.table(kurt_sharpe_allocation)
+
 st.write("### Individual Stock Returns and Volatility")
 for i, txt in enumerate(data.columns):
 	st.write("**{}:** Annualized Return: {}; Annualized Volatility: {}".format(txt, round(an_rt[i], 2), round(an_vol[i], 2)))
@@ -157,6 +192,7 @@ if st.sidebar.checkbox("Compare Portfolios", False):
 
 	ax.scatter(sdp, rp, marker="*", color="#01b0f6", s=500, label="Maximum Sharpe ratio")
 	ax.scatter(sdp_min, rp_min, marker="*", color="#02bf7d", s=500, label="Minimum volatility")
+	ax.scatter(sdp_kurt, rp_kurt, marker="*", color="#b97dd0", s=500, label="Optimal Higher moment")
 
 	#target = np.linspace(rp_min, 0.34, 50)
 	#efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target)
