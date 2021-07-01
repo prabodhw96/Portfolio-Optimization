@@ -155,12 +155,6 @@ min_vol_allocation = pd.DataFrame(min_vol.x,index=data.columns,columns=["allocat
 min_vol_allocation["allocation"] = [round(i*100,2)for i in min_vol_allocation["allocation"]]
 min_vol_allocation = min_vol_allocation.T
 
-kurt_sharpe = max_sharpe_ratio(cokurt(log_ret).mean(axis=1), cov_matrix, risk_free_rate)
-sdp_kurt, rp_kurt = portfolio_annualized_performance(kurt_sharpe["x"], mean_returns, cov_matrix)
-kurt_sharpe_allocation = pd.DataFrame(kurt_sharpe["x"], index=data.columns, columns=["allocation"])
-kurt_sharpe_allocation["allocation"] = [round(i*100, 2)for i in kurt_sharpe_allocation["allocation"]]
-kurt_sharpe_allocation = kurt_sharpe_allocation.T
-
 an_vol = np.std(returns)*np.sqrt(252)
 an_rt = mean_returns*252
 
@@ -173,11 +167,6 @@ st.write("### Minimum Volatility Portfolio Allocation")
 st.write("Annualized Return:", round(rp_min, 2))
 st.write("Annualized Volatility:", round(sdp_min, 2))
 st.table(min_vol_allocation)
-
-st.write("### Optimal Higher Moment Portfolio Allocation")
-st.write("Annualized Return:", round(rp_kurt, 2))
-st.write("Annualized Volatility:", round(sdp_kurt, 2))
-st.table(kurt_sharpe_allocation)
 
 st.write("### Individual Stock Returns and Volatility")
 for i, txt in enumerate(data.columns):
@@ -192,7 +181,6 @@ if st.sidebar.checkbox("Compare Portfolios", False):
 
 	ax.scatter(sdp, rp, marker="*", color="#01b0f6", s=500, label="Maximum Sharpe ratio")
 	ax.scatter(sdp_min, rp_min, marker="*", color="#02bf7d", s=500, label="Minimum volatility")
-	ax.scatter(sdp_kurt, rp_kurt, marker="*", color="#b97dd0", s=500, label="Optimal higher moment")
 
 	#target = np.linspace(rp_min, 0.34, 50)
 	#efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target)
