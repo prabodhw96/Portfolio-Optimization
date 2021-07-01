@@ -192,7 +192,7 @@ if st.sidebar.checkbox("Compare Portfolios", False):
 
 	ax.scatter(sdp, rp, marker="*", color="#01b0f6", s=500, label="Maximum Sharpe ratio")
 	ax.scatter(sdp_min, rp_min, marker="*", color="#02bf7d", s=500, label="Minimum volatility")
-	ax.scatter(sdp_kurt, rp_kurt, marker="*", color="#b97dd0", s=500, label="Optimal Higher moment")
+	ax.scatter(sdp_kurt, rp_kurt, marker="*", color="#b97dd0", s=500, label="Optimal higher moment")
 
 	#target = np.linspace(rp_min, 0.34, 50)
 	#efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target)
