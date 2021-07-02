@@ -103,7 +103,7 @@ if len(stocks) == 1:
 	st.stop()
 
 
-days = st.sidebar.slider(label="Select no. of years", min_value=1, max_value=5, value=1, step=1, key="year")
+days = st.sidebar.slider(label="Select no. of years", min_value=1, max_value=5, value=3, step=1, key="year")
 
 data = fetch_data(stocks, days*365)
 
