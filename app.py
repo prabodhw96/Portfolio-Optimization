@@ -133,13 +133,11 @@ if st.sidebar.checkbox("Daily Returns", False):
 mean_returns = returns.mean()
 cov_matrix = returns.cov()
 risk_free_rate = 0.0178
+num_portfolio = 10000
 log_returns = np.log(data/data.shift(1))
 log_returns = log_returns.dropna()
 
-log_ret = np.log(data/data.shift(1))
-log_ret = log_ret.dropna()
-
-max_sharpe = max_sharpe_ratio(mean_returns, log_returns, cov_matrix, risk_free_rate, sharpe_ratio_benchmark=2.0)
+max_sharpe = max_sharpe_ratio(mean_returns, log_returns, cov_matrix, risk_free_rate, sharpe_ratio_benchmark=1.0)
 sdp, rp = portfolio_annualized_performance(max_sharpe["x"], mean_returns, cov_matrix)
 max_sharpe_allocation = pd.DataFrame(max_sharpe["x"], index=data.columns, columns=["allocation"])
 max_sharpe_allocation["allocation"] = [round(i*100, 2)for i in max_sharpe_allocation["allocation"]]
