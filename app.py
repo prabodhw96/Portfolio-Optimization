@@ -133,7 +133,6 @@ if st.sidebar.checkbox("Daily Returns", False):
 mean_returns = returns.mean()
 cov_matrix = returns.cov()
 risk_free_rate = 0.0178
-num_portfolio = 10000
 log_returns = np.log(data/data.shift(1))
 log_returns = log_returns.dropna()
 
