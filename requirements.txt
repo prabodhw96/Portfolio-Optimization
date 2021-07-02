@@ -3,5 +3,6 @@ pandas
 matplotlib
 scipy
 pandas_datareader
+yfinance
 plotly
 streamlit

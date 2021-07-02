@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.style.use("ggplot")
-import pandas_datareader.data as web
+from pandas_datareader import data as pdr
+import yfinance as yf
+yf.pdr_override() # <== that's all it takes :-)
 from datetime import date, timedelta
 import plotly.graph_objects as go
 from scipy import stats
@@ -19,9 +21,9 @@ def load_data():
 	return df
 
 @st.cache(allow_output_mutation=True, suppress_st_warning=True)
-def fetch_data(stocks):
+def fetch_data(stocks, days=365):
 	try:
-		data = web.DataReader(stocks, data_source="yahoo",start=date.today()-timedelta(days=365))["Adj Close"]
+		data = pdr.get_data_yahoo(stocks, start=date.today()-timedelta(days=days))["Adj Close"]
 	except:
 		st.success("Please select stocks :)")
 		st.stop()
@@ -80,27 +82,6 @@ def efficient_frontier(mean_returns, cov_matrix, returns_range):
 		efficients.append(efficient_return(mean_returns, cov_matrix, ret))
 	return efficients
 
-def cokurt(df):
-	num = len(df.columns)
-	mtx1 = np.zeros(shape = (len(df), num**2))
-	mtx2 = np.zeros(shape = (len(df), num**3))
-	v = df.values
-	means = v.mean(0,keepdims=True)
-	v1 = (v-means).T
-
-	for k in range(num):
-		for i in range(num):
-			for j in range(num):
-				vals = v1[i]*v1[j]*v1[k]
-				mtx2[:,(k*(num**2))+(i*num)+j] = vals/float((len(df)-1)*df.iloc[:,i].std()*df.iloc[:,j].std()*df.iloc[:,k].std())
-
-	m4 = np.dot(v1,mtx2)
-	for i in range(num**3):
-		use = i%num
-		m4[:,i] = m4[:,i]/float(df.iloc[:,use].std())
-
-	return m4
-
 
 st.title("Optimal Asset Allocation")
 
@@ -117,7 +98,14 @@ else:
 	stocks = st.multiselect("", list(symbol["Name"]), ["Apple Inc.", "Amazon.com Inc.", "Alphabet Inc.", "Netflix Inc.", "Tesla Inc."])
 	stocks = [symbol_dict[i] for i in stocks]
 
-data = fetch_data(stocks)
+if len(stocks) == 1:
+	st.success("Please select stocks :)")
+	st.stop()
+
+
+days = st.sidebar.slider(label="Select no. of years", min_value=1, max_value=5, value=1, step=1, key="year")
+
+data = fetch_data(stocks, days*365)
 
 fig_lg = go.Figure()
 idx = 0
