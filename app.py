@@ -160,6 +160,13 @@ years = st.sidebar.slider(label="", min_value=1, max_value=5, value=3, step=1, k
 
 data = fetch_data(stocks, years*365)
 
+nan_cols = list(set(data.columns) - set(data.dropna(axis=1).columns))
+if len(nan_cols) > 0:
+	st.write("Following stocks are dropped as they contain NaN values:")
+	st.write(nan_cols)
+	data = data.dropna(axis=1)
+	stocks = list(data.columns)
+
 fig_lg = go.Figure()
 idx = 0
 for i in data.columns:
@@ -239,4 +246,8 @@ if st.sidebar.checkbox("Compare Portfolios", False):
 	st.pyplot(fig)
 
 if st.sidebar.checkbox("Distance Correlation Network", False):
-	st.pyplot(correlation_network(data, stocks))
+	try:
+		st.pyplot(correlation_network(data, stocks))
+	except:
+		st.write("NetworkX error :(")
+		pass
