@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.style.use("ggplot")
+import seaborn as sns
 from pandas_datareader import data as pdr
 import yfinance as yf
 yf.pdr_override() # <== that's all it takes :-)
@@ -9,6 +10,8 @@ from datetime import date, timedelta
 import plotly.graph_objects as go
 from scipy import stats
 import scipy.optimize as sco
+import dcor
+import networkx as nx
 import streamlit as st
 
 STOCK_URL = (
@@ -82,6 +85,56 @@ def efficient_frontier(mean_returns, cov_matrix, returns_range):
 		efficients.append(efficient_return(mean_returns, cov_matrix, ret))
 	return efficients
 
+def correlation_network(df, stocks):
+	df = df.diff().dropna()
+	df_dcor = pd.DataFrame(index=stocks, columns=stocks)
+	k = 0
+	for i in stocks:
+		v_i = df.loc[:, i].values
+		for j in stocks[k:]:
+			v_j = df.loc[:, j].values
+			dcor_val = dcor.distance_correlation(v_i, v_j)
+			df_dcor.at[i,j] = dcor_val
+			df_dcor.at[j,i] = dcor_val
+		k+=1
+
+	cor_matrix = df_dcor.values.astype("float")
+	sim_matrix = 1 - cor_matrix
+	G = nx.from_numpy_matrix(sim_matrix)
+	G = nx.relabel_nodes(G, lambda x: stocks[x])
+	G.edges(data=True)
+	H = G.copy()
+
+	for (u, v, wt) in G.edges.data("weight"):
+		if wt >= 1 - 0.325:
+			H.remove_edge(u, v)
+		if u == v:
+			H.remove_edge(u, v)
+
+	edges, weights = zip(*nx.get_edge_attributes(H, "weight").items())
+	pos = nx.kamada_kawai_layout(H)
+
+	with sns.axes_style("whitegrid"):
+		plt.figure(figsize=(10, 5))
+		plt.title("Distance correlation network of adjusted closing prices", size=13)
+		deg = H.degree
+		nodelist = []
+		node_sizes = []
+
+		for n, d in deg:
+			nodelist.append(n)
+			node_sizes.append(d)
+
+		nx.draw_networkx_nodes(H, pos, node_color="#DA70D6", nodelist=nodelist, node_size=np.power(node_sizes, 2.33), alpha=0.8, font_weight="bold")
+		nx.draw_networkx_labels(H, pos, font_size=13, font_family="sans-serif", font_weight='bold')
+		cmap = sns.cubehelix_palette(3, as_cmap=True, reverse=True)
+		nx.draw_networkx_edges(H, pos, edge_list=edges, style="solid", edge_color=weights, edge_cmap=cmap, edge_vmin=min(weights), edge_vmax=max(weights))
+		sm = plt.cm.ScalarMappable(cmap=cmap,  norm=plt.Normalize(vmin=min(weights),  vmax=max(weights)))
+		sm._A = []
+		plt.colorbar(sm)
+		plt.axis("off")
+		return plt
+
 
 st.title("Optimal Asset Allocation")
 
@@ -103,9 +156,9 @@ if len(stocks) == 1:
 	st.stop()
 
 st.sidebar.title("Select no. of years")
-days = st.sidebar.slider(label="", min_value=1, max_value=5, value=3, step=1, key="year")
+years = st.sidebar.slider(label="", min_value=1, max_value=5, value=3, step=1, key="year")
 
-data = fetch_data(stocks, days*365)
+data = fetch_data(stocks, years*365)
 
 fig_lg = go.Figure()
 idx = 0
@@ -184,3 +237,6 @@ if st.sidebar.checkbox("Compare Portfolios", False):
 	ax.set_ylabel("annualized returns")
 	ax.legend(labelspacing=0.8)
 	st.pyplot(fig)
+
+if st.sidebar.checkbox("Distance Correlation Network", False):
+	st.pyplot(correlation_network(data, stocks))

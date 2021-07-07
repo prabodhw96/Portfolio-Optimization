@@ -1,8 +1,11 @@
 numpy
 pandas
 matplotlib
+seaborn
 scipy
 pandas_datareader
 yfinance
 plotly
 streamlit
+dcor
+networkx
