@@ -125,8 +125,8 @@ def correlation_network(df, stocks):
 			nodelist.append(n)
 			node_sizes.append(d)
 
-		nx.draw_networkx_nodes(H, pos, node_color="#DA70D6", nodelist=nodelist, node_size=np.power(node_sizes, 2.33), alpha=0.8, font_weight="bold")
-		nx.draw_networkx_labels(H, pos, font_size=13, font_family="sans-serif", font_weight='bold')
+		nx.draw_networkx_nodes(H, pos, node_color="#DA70D6", nodelist=nodelist, node_size=np.power(node_sizes, 2.33), alpha=0.8, linewidths=5)
+		nx.draw_networkx_labels(H, pos)
 		cmap = sns.cubehelix_palette(3, as_cmap=True, reverse=True)
 		nx.draw_networkx_edges(H, pos, edge_list=edges, style="solid", edge_color=weights, edge_cmap=cmap, edge_vmin=min(weights), edge_vmax=max(weights))
 		sm = plt.cm.ScalarMappable(cmap=cmap,  norm=plt.Normalize(vmin=min(weights),  vmax=max(weights)))
