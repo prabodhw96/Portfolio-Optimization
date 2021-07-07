@@ -8,4 +8,4 @@ yfinance
 plotly
 streamlit
 dcor
-networkx
+networkx==2.5.1
