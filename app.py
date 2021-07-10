@@ -12,6 +12,7 @@ from scipy import stats
 import scipy.optimize as sco
 import dcor
 import networkx as nx
+import random
 import streamlit as st
 
 STOCK_URL = (
@@ -24,9 +25,12 @@ def load_data():
 	return df
 
 @st.cache(allow_output_mutation=True, suppress_st_warning=True)
-def fetch_data(stocks, days=365):
+def fetch_data(stocks, days=365, backtest=False):
 	try:
-		data = pdr.get_data_yahoo(stocks, start=date.today()-timedelta(days=days))["Adj Close"]
+		if backtest == False:
+			data = pdr.get_data_yahoo(stocks, start=date.today()-timedelta(days=days))["Adj Close"]
+		else:
+			data = pdr.get_data_yahoo(stocks, start=date.today()-timedelta(days=days), end=date.today()-timedelta(365))["Adj Close"]
 	except:
 		st.success("Please select stocks :)")
 		st.stop()
@@ -140,15 +144,30 @@ st.title("Optimal Asset Allocation")
 
 symbol = load_data()
 symbol_dict = dict(zip(symbol["Name"], symbol["Symbol"]))
+symbol_inv_dict = {v: k for k, v in symbol_dict.items()}
 
 st.sidebar.markdown("# Search by")
 search = st.sidebar.radio("", ("Name", "Symbol"))
 
+init_list_symbol = ["AAPL", "AMZN", "GOOG", "NFLX", "TSLA"]
+init_list = ["Apple Inc.", "Amazon.com Inc.", "Alphabet Inc.", "Netflix Inc.", "Tesla Inc."]
+
 st.markdown("### Select stocks")
+
+random_select = st.radio("Select stocks at random", ("Yes", "No"), index=1)
+if random_select == "Yes":
+	num_col1, _ = st.beta_columns(2)
+	with num_col1:
+		num_stocks = st.number_input("Select no. of stocks", min_value=2, max_value=30, value=5, key="num_stocks")
+
 if search == "Symbol":
-	stocks = st.multiselect("", list(symbol["Symbol"]), ["AAPL", "AMZN", "GOOG", "NFLX", "TSLA"])
+	if random_select == "Yes":
+		init_list_symbol = random.sample(list(symbol_inv_dict.keys()), num_stocks)
+	stocks = st.multiselect("", list(symbol["Symbol"]), init_list_symbol)
 else:
-	stocks = st.multiselect("", list(symbol["Name"]), ["Apple Inc.", "Amazon.com Inc.", "Alphabet Inc.", "Netflix Inc.", "Tesla Inc."])
+	if random_select == "Yes":
+		init_list = random.sample(list(symbol_dict.keys()), num_stocks)
+	stocks = st.multiselect("", list(symbol["Name"]), init_list)
 	stocks = [symbol_dict[i] for i in stocks]
 
 if len(stocks) == 1:
@@ -163,7 +182,10 @@ data = fetch_data(stocks, years*365)
 nan_cols = list(set(data.columns) - set(data.dropna(axis=1).columns))
 if len(nan_cols) > 0:
 	st.write("Following stocks are dropped as they contain NaN values:")
-	st.write(nan_cols)
+	if search == "Symbol":
+		st.write(nan_cols)
+	else:
+		st.write([symbol_inv_dict[i] for i in nan_cols])
 	data = data.dropna(axis=1)
 	stocks = list(data.columns)
 
@@ -204,7 +226,7 @@ max_sharpe_allocation = max_sharpe_allocation.T
 
 min_vol = min_variance(mean_returns, cov_matrix)
 sdp_min, rp_min = portfolio_annualized_performance(min_vol["x"], mean_returns, cov_matrix)
-min_vol_allocation = pd.DataFrame(min_vol.x,index=data.columns,columns=["allocation"])
+min_vol_allocation = pd.DataFrame(min_vol.x,index=data.columns, columns=["allocation"])
 min_vol_allocation["allocation"] = [round(i*100,2)for i in min_vol_allocation["allocation"]]
 min_vol_allocation = min_vol_allocation.T
 
@@ -251,3 +273,93 @@ if st.sidebar.checkbox("Distance Correlation Network", False):
 	except:
 		st.write("NetworkX error :(")
 		pass
+
+begin_backtest = (date.today()-timedelta(365)).year
+end_backtest = date.today().year
+
+st.sidebar.title("Backtest on {} - {}".format(begin_backtest, end_backtest))
+backtest = search = st.sidebar.radio("", ("Yes", "No"), index=1)
+if backtest == "Yes":
+	st.title("Backtest on 2020-2021")
+	st.markdown("**Note**: Data used from **{} to {}** for caculation".format(date.today()-timedelta(365*(years+1)), date.today()-timedelta(365)))
+	data_backtest = fetch_data(stocks, years*365, backtest=True)
+
+	returns_backtest = data_backtest.pct_change()
+	mean_returns_backtest = returns_backtest.mean()
+	cov_matrix_backtest = returns_backtest.cov()
+	risk_free_rate_backtest = 0.0178
+	log_returns_backtest = np.log(data_backtest/data_backtest.shift(1))
+	log_returns_backtest = log_returns_backtest.dropna()
+
+	max_sharpe_backtest = max_sharpe_ratio(mean_returns_backtest, log_returns_backtest, cov_matrix_backtest, risk_free_rate_backtest, sharpe_ratio_benchmark=1.0)
+	sdp_backtest, rp_backtest = portfolio_annualized_performance(max_sharpe_backtest["x"], mean_returns_backtest, cov_matrix_backtest)
+	max_sharpe_allocation_backtest = pd.DataFrame(max_sharpe_backtest["x"], index=data_backtest.columns, columns=["allocation"])
+	max_sharpe_allocation_backtest["allocation"] = [round(i*100, 2)for i in max_sharpe_allocation_backtest["allocation"]]
+	max_sharpe_allocation_backtest = max_sharpe_allocation_backtest.T
+
+	min_vol_backtest = min_variance(mean_returns_backtest, cov_matrix_backtest)
+	sdp_min_backtest, rp_min_backtest = portfolio_annualized_performance(min_vol_backtest["x"], mean_returns_backtest, cov_matrix_backtest)
+	min_vol_allocation_backtest = pd.DataFrame(min_vol_backtest.x,index=data_backtest.columns, columns=["allocation"])
+	min_vol_allocation_backtest["allocation"] = [round(i*100,2)for i in min_vol_allocation_backtest["allocation"]]
+	min_vol_allocation_backtest = min_vol_allocation_backtest.T
+
+	an_vol_backtest = np.std(returns_backtest)*np.sqrt(252)
+	an_rt_backtest = mean_returns_backtest*252
+
+	st.write("### Maximum Sharpe Ratio Portfolio Allocation")
+	st.write("Annualized Return:", round(rp_backtest, 2))
+	st.write("Annualized Volatility:", round(sdp_backtest, 2))
+	st.table(max_sharpe_allocation_backtest)
+
+	st.write("### Minimum Volatility Portfolio Allocation")
+	st.write("Annualized Return:", round(rp_min_backtest, 2))
+	st.write("Annualized Volatility:", round(sdp_min_backtest, 2))
+	st.table(min_vol_allocation_backtest)
+
+	st.write("### Individual Stock Returns and Volatility")
+	for i, txt in enumerate(data_backtest.columns):
+		st.write("**{}:** Annualized Return: {}; Annualized Volatility: {}".format(txt, round(an_rt_backtest[i], 2), round(an_vol_backtest[i], 2)))
+
+	fig, ax = plt.subplots(figsize=(10, 5))
+	ax.scatter(an_vol, an_rt, marker="o", color="#f8766d", s=200)
+
+	for i, txt in enumerate(data.columns):
+		ax.annotate(txt, (an_vol[i], an_rt[i]), xytext=(10, 0), textcoords="offset points")
+
+	ax.scatter(sdp, rp, marker="*", color="#01b0f6", s=500, label="Maximum Sharpe ratio")
+	ax.scatter(sdp_min, rp_min, marker="*", color="#02bf7d", s=500, label="Minimum volatility")
+
+	#target = np.linspace(rp_min, 0.34, 50)
+	#efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target)
+
+	#ax.plot([pf["fun"] for pf in efficient_portfolios], target, linestyle="-.", color="black", label="efficient frontier")
+	ax.set_title("Portfolio Optimization with Individual Stocks")
+	ax.set_xlabel("annualized volatility")
+	ax.set_ylabel("annualized returns")
+	ax.legend(labelspacing=0.8)
+	st.pyplot(fig)
+
+	df_test = pdr.get_data_yahoo(list(data_backtest.columns), start=date.today()-timedelta(365))["Adj Close"]
+	ret_sharpe = 0
+	for i in df_test.columns:
+		ret_sharpe += df_test[i]*max_sharpe_allocation.reset_index(drop=True)[i][0]
+	ret_sharpe /= 100
+	ret_vol = 0
+	for i in df_test.columns:
+		ret_vol += df_test[i]*min_vol_allocation.reset_index(drop=True)[i][0]
+	ret_vol /= 100
+	df_test["Max Sharpe"] = ret_sharpe
+	df_test["Min Volatility"] = ret_vol
+	if df_test.isna().sum().sum() > 0:
+		df_test = df_test.dropna()
+
+	fig_backtest = go.Figure()
+	fig_backtest.add_trace(go.Scatter(x=df_test.index, y=df_test["Max Sharpe"], name="Max Sharpe"))
+	fig_backtest.add_trace(go.Scatter(x=df_test.index, y=df_test["Min Volatility"], name="Min Volatility"))
+	fig_backtest.update_layout(yaxis_title="Price in $", title="<b>Portfolio performance in 2020-2021 based on aforementioned allocation</b>")
+	st.plotly_chart(fig_backtest)
+
+	mspr = np.round((df_test["Max Sharpe"][-1] - df_test["Max Sharpe"][0])/df_test["Max Sharpe"][0] * 100, 2)
+	mvpr = np.round((df_test["Min Volatility"][-1] - df_test["Min Volatility"][0])/df_test["Min Volatility"][0] * 100, 2)
+	st.write("**Max Sharpe Portfolio Return ({} - {}):**".format(begin_backtest, end_backtest), mspr, "%")
+	st.write("**Min Volatility Portfolio Return ({} - {}):**".format(begin_backtest, end_backtest), mvpr, "%")
