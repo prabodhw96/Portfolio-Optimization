@@ -280,7 +280,7 @@ end_backtest = date.today().year
 st.sidebar.title("Backtest on {} - {}".format(begin_backtest, end_backtest))
 backtest = search = st.sidebar.radio("", ("Yes", "No"), index=1)
 if backtest == "Yes":
-	st.title("Backtest on 2021-2022")
+	st.title("Backtest on {}-{}".format(begin_backtest, end_backtest))
 	st.markdown("**Note**: Data used from **{} to {}** for caculation".format(date.today()-timedelta(365*(years+1)), date.today()-timedelta(365)))
 	data_backtest = fetch_data(stocks, years*365, backtest=True)
 
@@ -356,7 +356,7 @@ if backtest == "Yes":
 	fig_backtest = go.Figure()
 	fig_backtest.add_trace(go.Scatter(x=df_test.index, y=df_test["Max Sharpe"], name="Max Sharpe"))
 	fig_backtest.add_trace(go.Scatter(x=df_test.index, y=df_test["Min Volatility"], name="Min Volatility"))
-	fig_backtest.update_layout(yaxis_title="Price in $", title="<b>Portfolio performance in 2021-2022 based on aforementioned allocation</b>")
+	fig_backtest.update_layout(yaxis_title="Price in $", title="<b>Portfolio performance in {}-{} based on aforementioned allocation</b>".format(begin_backtest, end_backtest))
 	st.plotly_chart(fig_backtest)
 
 	mspr = np.round((df_test["Max Sharpe"][-1] - df_test["Max Sharpe"][0])/df_test["Max Sharpe"][0] * 100, 2)
