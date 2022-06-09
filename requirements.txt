@@ -6,6 +6,6 @@ scipy
 pandas_datareader
 yfinance
 plotly
-streamlit==0.80.0
+streamlit
 dcor
 networkx

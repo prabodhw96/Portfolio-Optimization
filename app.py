@@ -156,7 +156,7 @@ st.markdown("### Select stocks")
 
 random_select = st.radio("Select stocks at random", ("Yes", "No"), index=1)
 if random_select == "Yes":
-	num_col1, _ = st.beta_columns(2)
+	num_col1, _ = st.columns(2)
 	with num_col1:
 		num_stocks = st.number_input("Select no. of stocks", min_value=2, max_value=30, value=5, key="num_stocks")
 
