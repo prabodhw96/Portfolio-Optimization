@@ -4,7 +4,7 @@ matplotlib
 seaborn
 scipy
 pandas_datareader
-yfinance==0.1.62
+yfinance
 plotly
 streamlit==1.4.0
 dcor
