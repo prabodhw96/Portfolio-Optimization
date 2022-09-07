@@ -6,6 +6,7 @@ import seaborn as sns
 from pandas_datareader import data as pdr
 import yfinance as yf
 yf.pdr_override() # <== that's all it takes :-)
+from sklearn.decomposition import PCA
 from datetime import date, timedelta
 import plotly.graph_objects as go
 from scipy import stats
@@ -188,6 +189,23 @@ if len(nan_cols) > 0:
 		st.write([symbol_inv_dict[i] for i in nan_cols])
 	data = data.dropna(axis=1)
 	stocks = list(data.columns)
+
+# Select stocks with negative weights less than 50%
+#returns = data.pct_change()
+#pca = PCA(1).fit(returns.fillna(0))
+#pc1 = pd.Series(index=returns.columns, data=pca.components_[0])
+#to_select = pc1.nlargest()[pc1.nlargest()/pc1.nlargest().sum() * 100 < 50]
+#neg_cols = list(set(data.columns) - set(to_select.index))
+#if len(neg_cols) > 0:
+#	st.write("Following stocks are dropped because of high negative weights:")
+#	if search == "Symbol":
+#		st.write(neg_cols)
+#	else:
+#		st.write([symbol_inv_dict[i] for i in neg_cols])
+#	data = data[to_select.index]
+#	stocks = list(data.columns)
+
+returns = data.pct_change()
 
 fig_lg = go.Figure()
 idx = 0
